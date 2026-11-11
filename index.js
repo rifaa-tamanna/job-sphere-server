@@ -15,7 +15,12 @@ export async function connectToMongoDB() {
   }
 }
 
-connectToMongoDB()
+const connectedClient = await connectToMongoDB()
+
+//database collection create
+const database = connectedClient.db('jobSphere');
+const users = database.collection('user');
+const jobs = database.collection('jobs');
 
 
 const app = express()
@@ -29,6 +34,12 @@ app.use(cors())
 
 app.get('/', (req, res) => {
     res.send('JobSphere app is running fine!')
+})
+
+// all users get
+app.get('/users' , async(req, res) => {
+    const result = await users.find({}).toArray()
+    res.send(result)
 })
 
 
