@@ -4,7 +4,7 @@ import "dotenv/config";
 import { MongoClient, ObjectId } from "mongodb";
 
 const client = new MongoClient(
-  `mongodb://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@ac-2zvfuqn-shard-00-00.ndpwr4v.mongodb.net:27017,ac-2zvfuqn-shard-00-01.ndpwr4v.mongodb.net:27017,ac-2zvfuqn-shard-00-02.ndpwr4v.mongodb.net:27017/?ssl=true&replicaSet=atlas-p2n9ts-shard-0&authSource=admin`
+  `mongodb://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@ac-2zvfuqn-shard-00-00.ndpwr4v.mongodb.net:27017,ac-2zvfuqn-shard-00-01.ndpwr4v.mongodb.net:27017,ac-2zvfuqn-shard-00-02.ndpwr4v.mongodb.net:27017/?ssl=true&replicaSet=atlas-p2n9ts-shard-0&authSource=admin`,
 );
 
 const app = express();
@@ -27,6 +27,7 @@ async function startServer() {
     });
 
     // Get all users
+    // Get all users
     app.get("/users", async (req, res) => {
       try {
         const result = await users.find({}).toArray();
@@ -39,7 +40,8 @@ async function startServer() {
     // Get all jobs
     app.get("/jobs", async (req, res) => {
       try {
-        const result = await jobs.find({}).toArray();
+        const result = await jobs.find({}).sort({ _id: 1 }).toArray();
+
         res.send(result);
       } catch (error) {
         res.status(500).send({ message: "Failed to get jobs" });
@@ -54,6 +56,41 @@ async function startServer() {
         res.status(201).send(result);
       } catch (error) {
         res.status(500).send({ message: "Failed to create job" });
+      }
+    });
+
+    // Delete a job
+    app.delete("/jobs/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({
+            message: "Invalid job ID",
+          });
+        }
+
+        const result = await jobs.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({
+            message: "Job not found",
+          });
+        }
+
+        res.send({
+          message: "Job deleted successfully",
+          deletedCount: result.deletedCount,
+        });
+      } catch (error) {
+        console.error("Delete job error:", error);
+
+        res.status(500).send({
+          message: "Failed to delete job",
+          error: error.message,
+        });
       }
     });
 
@@ -109,7 +146,7 @@ async function startServer() {
 
         const result = await jobs.updateOne(
           { _id: new ObjectId(id) },
-          { $set: updatedData }
+          { $set: updatedData },
         );
 
         if (result.matchedCount === 0) {
